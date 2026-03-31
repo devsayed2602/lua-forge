@@ -10,7 +10,8 @@ npm run dev
 yarn dev
 # or
 pnpm dev
-# or
+# or![standard (1)](https://github.com/user-attachments/assets/0a330d18-33fe-4025-bd25-ab112d490955)
+
 bun dev
 ```
 
