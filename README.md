@@ -24,6 +24,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
+https://cdn.discordapp.com/attachments/1466093077939748917/1488581281339146301/standard_1.gif?ex=69cd4cd9&is=69cbfb59&hm=15d3d7e450ef0ee320fc74d09f665e151f493b01f8ae826097c948686db7ad85&
 
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
