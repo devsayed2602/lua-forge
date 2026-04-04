@@ -33,9 +33,12 @@ export async function GET() {
       gameList = data;
     }
 
-    // Pick 18 random games to fill at least 3 rows on all breakpoints (6 cols × 3 rows)
-    const shuffled = gameList.sort(() => 0.5 - Math.random());
-    const suggestions = shuffled.slice(0, 18);
+    // Efficiently pick 18 random games (instead of sorting 66,000 items)
+    const suggestions = [];
+    const poolSize = gameList.length;
+    for (let i = 0; i < 18; i++) {
+        suggestions.push(gameList[Math.floor(Math.random() * poolSize)]);
+    }
 
     return NextResponse.json(suggestions);
   } catch (error) {

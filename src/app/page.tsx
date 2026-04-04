@@ -15,8 +15,8 @@ const GamePoster = ({ appId, name, onGenerate }: { appId: string; name: string; 
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  // Use Steam's library vertical poster CDN
-  const imageUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900_2x.jpg`;
+  // Use Steam's standard library vertical poster CDN (600x900 instead of retina _2x)
+  const imageUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900.jpg`;
 
   return (
     <motion.div 
@@ -34,6 +34,7 @@ const GamePoster = ({ appId, name, onGenerate }: { appId: string; name: string; 
           <img 
             src={imageUrl} 
             alt={name}
+            loading="lazy"
             onLoad={() => setLoading(false)}
             onError={() => { setError(true); setLoading(false); }}
             className={`w-full h-full object-cover transition-all duration-700 pointer-events-none ${loading ? 'opacity-0' : 'opacity-100 group-hover:scale-110 group-hover:rotate-1'}`}
