@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+// Global cache to avoid re-parsing the huge JSON on every request within the same container
+let cachedGameList: any[] | null = null;
+let lastFetchTime = 0;
+const CACHE_TTL = 3600 * 1000; // 1 hour
+
 export async function GET() {
   try {
     const backendUrl = process.env.BACKEND_URL;
@@ -9,35 +14,50 @@ export async function GET() {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
-    const indexUrl = `${backendUrl}/api/games_index.json`;
-
-    const response = await fetch(indexUrl, {
-      method: "GET",
-      headers: {
-        "User-Agent": "SteamLuaPatcher/2.0",
-        "X-Access-Token": accessToken,
-      },
-      next: { revalidate: 3600 } // Cache the huge file on the server for 1 hour
-    });
-
-    if (!response.ok) {
-      return NextResponse.json({ error: "Webserver error" }, { status: response.status });
-    }
-
-    const data = await response.json();
-    let gameList = [];
+    const currentTime = Date.now();
     
-    if (data && Array.isArray(data.games)) {
-      gameList = data.games;
-    } else if (Array.isArray(data)) {
-      gameList = data;
+    if (!cachedGameList || (currentTime - lastFetchTime) > CACHE_TTL) {
+      const indexUrl = `${backendUrl}/api/games_index.json`;
+      const response = await fetch(indexUrl, {
+        method: "GET",
+        headers: {
+          "User-Agent": "SteamLuaPatcher/2.0",
+          "X-Access-Token": accessToken,
+        },
+        // We still use next cache for the fetch itself
+        next: { revalidate: 3600 } 
+      });
+
+      if (!response.ok) {
+        return NextResponse.json({ error: "Webserver error" }, { status: response.status });
+      }
+
+      const data = await response.json();
+      if (data && Array.isArray(data.games)) {
+        cachedGameList = data.games;
+      } else if (Array.isArray(data)) {
+        cachedGameList = data;
+      }
+      lastFetchTime = currentTime;
     }
 
-    // Efficiently pick 18 random games (instead of sorting 66,000 items)
+    if (!cachedGameList) {
+      return NextResponse.json({ error: "No games found" }, { status: 404 });
+    }
+
+    // Efficiently pick 30 random games for more variety
     const suggestions = [];
-    const poolSize = gameList.length;
-    for (let i = 0; i < 18; i++) {
-        suggestions.push(gameList[Math.floor(Math.random() * poolSize)]);
+    const poolSize = cachedGameList.length;
+    const count = Math.min(poolSize, 30);
+    
+    // Use a set to avoid duplicates in the same suggestion batch
+    const indices = new Set<number>();
+    while (indices.size < count) {
+      indices.add(Math.floor(Math.random() * poolSize));
+    }
+    
+    for (const index of indices) {
+      suggestions.push(cachedGameList[index]);
     }
 
     return NextResponse.json(suggestions);

@@ -80,24 +80,38 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [isIndexLoading, setIsIndexLoading] = useState(false);
   const [isIndexLoaded, setIsIndexLoaded] = useState(false);
+  const [isShuffling, setIsShuffling] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
 
   // Preview Modal States
   const [previewContent, setPreviewContent] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/suggestions")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setSuggestedGames(data);
-          if (searchQuery === "") {
-            setFilteredGames(data);
-          }
+  const fetchSuggestions = async (silent = false) => {
+    if (!silent) setIsShuffling(true);
+    try {
+      const res = await fetch("/api/suggestions?t=" + Date.now());
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setSuggestedGames(data);
+        if (searchQuery === "") {
+          setFilteredGames(data);
         }
-      })
-      .catch((err) => console.error("Failed to load suggestions:", err));
+      }
+      // Proactively load the full index in the background after suggestions are ready
+      if (!isIndexLoaded && !isIndexLoading) {
+        loadFullIndex();
+      }
+    } catch (err) {
+      console.error("Failed to load suggestions:", err);
+    } finally {
+      setIsShuffling(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSuggestions(true);
   }, []);
 
   const loadFullIndex = async () => {
@@ -109,8 +123,11 @@ export default function Home() {
       let gameList: Game[] = [];
       if (data && Array.isArray(data.games)) gameList = data.games;
       else if (Array.isArray(data)) gameList = data;
+      
+      // Memory-efficient storage
       setGames(gameList);
       setIsIndexLoaded(true);
+      console.log(`Index loaded: ${gameList.length} items`);
     } catch (err) {
       console.error("Failed to load full index:", err);
     } finally {
@@ -118,22 +135,33 @@ export default function Home() {
     }
   };
 
+  // Debouncing logic for the search query
   useEffect(() => {
-    if (searchQuery.trim().length > 0) {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 180); // 180ms delay is a sweet spot for fast-feel vs CPU load
+    
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (debouncedQuery.trim().length > 0) {
       const source = isIndexLoaded ? games : suggestedGames;
-      const q = searchQuery.toLowerCase().trim();
-      const tokens = q.split(/\s+/); // Split by whitespace into keywords
+      const q = debouncedQuery.toLowerCase().trim();
+      const tokens = q.split(/\s+/).filter(t => t.length > 0);
       
+      // High-performance filter using basic string operations
       const filtered = source.filter((game) => {
           const name = game.name.toLowerCase();
           const id = game.id;
           
-          // ID match (exact or substring)
           if (id.includes(q)) return true;
           
-          // Name match: ALL tokens must be present in the name (AND logic)
-          return tokens.every(token => name.includes(token));
-      }).slice(0, 48); // Show up to 48 matching results
+          for (const token of tokens) {
+            if (!name.includes(token)) return false;
+          }
+          return true;
+      }).slice(0, 48);
       
       setFilteredGames(filtered);
       setIsSearching(true);
@@ -142,7 +170,7 @@ export default function Home() {
       setFilteredGames(suggestedGames);
       setIsSearching(false);
     }
-  }, [searchQuery, games, suggestedGames, isIndexLoaded]);
+  }, [debouncedQuery, games, suggestedGames, isIndexLoaded]);
 
   const handleRetrieve = async (id: string) => {
     setAppId(id);
@@ -159,6 +187,13 @@ export default function Home() {
       setErrorMessage(error.message);
       setTimeout(() => setStatus("idle"), 3000);
     }
+  };
+
+  const handleFeelingLucky = () => {
+    const list = isIndexLoaded ? games : suggestedGames;
+    if (list.length === 0) return;
+    const randomGame = list[Math.floor(Math.random() * list.length)];
+    handleRetrieve(randomGame.id);
   };
 
   const handleDownloadZip = async () => {
@@ -202,26 +237,46 @@ export default function Home() {
           </div>
           <input
             type="text"
-            onFocus={loadFullIndex}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search Your Library..."
             className="w-full bg-white/[0.03] backdrop-blur-xl border-2 border-white/[0.08] py-6 px-16 rounded-[2rem] text-white placeholder-gray-700 font-black tracking-widest text-lg outline-none focus:border-purple-600/50 focus:bg-white/[0.05] focus:shadow-[0_0_50px_rgba(147,51,234,0.1)] transition-all uppercase"
           />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute inset-y-0 right-6 flex items-center text-gray-600 hover:text-white transition-colors">
-              <X className="w-6 h-6" />
-            </button>
-          )}
+          <div className="absolute inset-y-0 right-4 flex items-center gap-2">
+            {!searchQuery && (
+              <button 
+                onClick={handleFeelingLucky}
+                title="Feeling Lucky? (Random Game)"
+                className="p-3 text-purple-500 hover:text-white hover:bg-purple-600/20 rounded-xl transition-all"
+              >
+                <Sparkles className="w-6 h-6" />
+              </button>
+            )}
+            {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="p-3 text-gray-600 hover:text-white transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+            )}
+          </div>
         </div>
 
         {/* RESULTS GRID */}
         <div className="flex flex-col gap-6">
           <AnimatePresence mode="wait">
             {!isSearching && suggestedGames.length > 0 && (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-3 px-2">
-                    <Sparkles className="w-4 h-4 text-purple-500" />
-                    <span className="text-xs font-black uppercase tracking-[0.4em] text-purple-500/70">Recommended For You</span>
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-3">
+                        <Sparkles className="w-4 h-4 text-purple-500" />
+                        <span className="text-xs font-black uppercase tracking-[0.4em] text-purple-500/70">Recommended For You</span>
+                    </div>
+                    <button 
+                      onClick={() => fetchSuggestions(false)} 
+                      disabled={isShuffling}
+                      className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-purple-400 transition-colors disabled:opacity-50"
+                    >
+                      <Loader2 className={`w-3 h-3 ${isShuffling ? "animate-spin" : ""}`} />
+                      Shuffle
+                    </button>
                 </motion.div>
             )}
             {isSearching && isIndexLoading && (
