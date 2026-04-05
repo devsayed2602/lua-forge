@@ -28,11 +28,16 @@ function writeConfig(config: any) {
 
 // GET: Fetch admin config (requires auth)
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("x-admin-password");
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const authHeader = request.headers.get("x-admin-password")?.trim();
+  const adminPassword = process.env.ADMIN_PASSWORD?.trim();
 
-  if (!adminPassword || authHeader !== adminPassword) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!adminPassword) {
+    console.error("ADMIN_PASSWORD environment variable is NOT set on the server.");
+    return NextResponse.json({ error: "Server configuration missing: ADMIN_PASSWORD" }, { status: 500 });
+  }
+
+  if (authHeader !== adminPassword) {
+    return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
 
   const config = readConfig();
@@ -41,11 +46,16 @@ export async function GET(request: NextRequest) {
 
 // POST: Update admin config (requires auth)
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get("x-admin-password");
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const authHeader = request.headers.get("x-admin-password")?.trim();
+  const adminPassword = process.env.ADMIN_PASSWORD?.trim();
 
-  if (!adminPassword || authHeader !== adminPassword) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!adminPassword) {
+    console.error("ADMIN_PASSWORD environment variable is NOT set on the server.");
+    return NextResponse.json({ error: "Server configuration missing: ADMIN_PASSWORD" }, { status: 500 });
+  }
+
+  if (authHeader !== adminPassword) {
+    return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
 
   try {

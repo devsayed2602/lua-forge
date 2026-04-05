@@ -327,21 +327,25 @@ export default function Home() {
     setAdminAuthError(false);
     try {
       const res = await fetch("/api/admin", {
-        headers: { "x-admin-password": adminPassword },
+        headers: { "x-admin-password": adminPassword.trim() },
       });
+      const data = await res.json();
+      
       if (!res.ok) {
         setAdminAuthError(true);
+        setErrorMessage(data.error || "Authentication failed");
         setAdminLoading(false);
         return;
       }
-      const config = await res.json();
-      setAdminConfig(config);
-      setSessionPassword(adminPassword);
+      
+      setAdminConfig(data);
+      setSessionPassword(adminPassword.trim());
       setShowAdminLogin(false);
       setShowAdminDashboard(true);
       setAdminPassword("");
     } catch {
       setAdminAuthError(true);
+      setErrorMessage("Network error during authentication");
     } finally {
       setAdminLoading(false);
     }
