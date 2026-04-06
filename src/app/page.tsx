@@ -26,7 +26,7 @@ const GamePoster = ({ appId, name, onGenerate, downloadsDisabled }: { appId: str
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  const imageUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900.jpg`;
+  const imageUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`;
 
   return (
     <motion.div 
@@ -44,6 +44,7 @@ const GamePoster = ({ appId, name, onGenerate, downloadsDisabled }: { appId: str
             src={imageUrl} 
             alt={name}
             loading="lazy"
+            decoding="async"
             onLoad={() => setLoading(false)}
             onError={() => { setError(true); setLoading(false); }}
             className={`w-full h-full object-cover transition-all duration-700 pointer-events-none ${loading ? 'opacity-0' : 'opacity-100 group-hover:scale-110 group-hover:rotate-1'}`}

@@ -29,7 +29,11 @@ export async function GET() {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400"
+      }
+    });
   } catch (error) {
     console.error("Backend Error Fetching Index:", error);
     return NextResponse.json({ error: "Failed to fetch game index" }, { status: 500 });
