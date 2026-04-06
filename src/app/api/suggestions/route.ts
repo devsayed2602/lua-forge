@@ -8,8 +8,11 @@ let cachedSuggestions: any[] | null = null;
 let lastSuggestionsTime = 0;
 const SUGGESTIONS_TTL = 600 * 1000; // 10 minutes for the final 30 items
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const isForcedShuffle = searchParams.get("t") || searchParams.get("shuffle");
+    
     const backendUrl = process.env.BACKEND_URL;
     const accessToken = process.env.SERVER_ACCESS_TOKEN;
 
@@ -19,8 +22,8 @@ export async function GET() {
 
     const currentTime = Date.now();
 
-    // Fast path: If we have cached suggestions, return them immediately
-    if (cachedSuggestions && (currentTime - lastSuggestionsTime) < SUGGESTIONS_TTL) {
+    // Fast path: If we have cached suggestions AND it's not a forced shuffle, return them
+    if (!isForcedShuffle && cachedSuggestions && (currentTime - lastSuggestionsTime) < SUGGESTIONS_TTL) {
       return NextResponse.json(cachedSuggestions, {
         headers: {
           "Cache-Control": "public, s-maxage=600, stale-while-revalidate=3600"
