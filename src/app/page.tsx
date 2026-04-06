@@ -25,22 +25,31 @@ interface SiteConfig {
 const GamePoster = ({ appId, name, onGenerate, downloadsDisabled }: { appId: string; name: string; onGenerate: (id: string) => void; downloadsDisabled?: boolean }) => {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [useFallback, setUseFallback] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const imageUrl = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`;
+  // Primary: Vertical Poster, Fallback: Horizontal Header
+  const verticalUrl = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`;
+  const headerUrl = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/header.jpg`;
+  const currentUrl = useFallback ? headerUrl : verticalUrl;
 
-  // Fail-safe: If image doesn't load in 5 seconds, show the placeholder
+  // Fail-safe: If image doesn't load in 5 seconds, try fallback or error
   useEffect(() => {
     if (loading) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
         if (loading) {
-          setError(true);
-          setLoading(false);
+          if (!useFallback) {
+             setUseFallback(true); // Try header.jpg before giving up
+          } else {
+             setError(true);
+             setLoading(false);
+          }
         }
       }, 5000); 
     }
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
-  }, [loading]);
+  }, [loading, useFallback]);
 
   return (
     <motion.div 
@@ -55,7 +64,8 @@ const GamePoster = ({ appId, name, onGenerate, downloadsDisabled }: { appId: str
             </div>
           )}
           <img 
-            src={imageUrl} 
+            key={currentUrl} // Key change triggers new load attempt on fallback
+            src={currentUrl} 
             alt={name}
             loading="lazy"
             decoding="async"
@@ -65,8 +75,12 @@ const GamePoster = ({ appId, name, onGenerate, downloadsDisabled }: { appId: str
             }}
             onError={() => { 
                 if (timeoutRef.current) clearTimeout(timeoutRef.current);
-                setError(true); 
-                setLoading(false); 
+                if (!useFallback) {
+                    setUseFallback(true);
+                } else {
+                    setError(true); 
+                    setLoading(false); 
+                }
             }}
             className={`w-full h-full object-cover transition-all duration-700 pointer-events-none ${loading ? 'opacity-0' : 'opacity-100 group-hover:scale-110 group-hover:rotate-1'}`}
           />
