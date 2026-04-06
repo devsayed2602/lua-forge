@@ -659,10 +659,10 @@ export default function Home() {
                     <button 
                       onClick={() => fetchSuggestions(false)} 
                       disabled={isShuffling}
-                      className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-purple-400 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 hover:border-purple-500/30 hover:bg-purple-500/10 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-purple-400 transition-all duration-300 disabled:opacity-50 group active:scale-95"
                     >
-                      <Loader2 className={`w-3 h-3 ${isShuffling ? "animate-spin" : ""}`} />
-                      Shuffle
+                      <RefreshCw className={`w-3 h-3 ${isShuffling ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`} />
+                      <span>{isShuffling ? "Shuffling..." : "Shuffle"}</span>
                     </button>
                 </motion.div>
             )}
