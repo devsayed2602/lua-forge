@@ -613,6 +613,27 @@ export default function Home() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {!siteStatus.maintenanceMode && (
+          <motion.a
+            href="https://discord.gg/QNhMzXD3BJ"
+            target="_blank"
+            rel="noopener noreferrer"
+            initial={{ x: 100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            className="fixed top-8 right-8 z-[100] flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all duration-300 group shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
+          >
+            <div className="p-2 rounded-lg bg-indigo-500/20 group-hover:bg-indigo-500 text-indigo-400 group-hover:text-white transition-all duration-300">
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 group-hover:text-white transition-colors">Join Discord</span>
+            <div className="absolute inset-0 border border-indigo-500/0 group-hover:border-indigo-500/20 rounded-2xl transition-all duration-500 blur-sm pointer-events-none" />
+          </motion.a>
+        )}
+      </AnimatePresence>
+
       <main className={`relative z-10 min-h-screen bg-transparent text-[#e0e0e0] flex flex-col items-center p-4 md:p-12 font-sans selection:bg-purple-500/30 ${siteStatus.bannerEnabled && siteStatus.bannerMessage && !siteStatus.maintenanceMode ? 'pt-16 md:pt-20' : ''}`}>
       <div className="w-full max-w-6xl flex flex-col gap-10">
         
