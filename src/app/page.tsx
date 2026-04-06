@@ -25,8 +25,22 @@ interface SiteConfig {
 const GamePoster = ({ appId, name, onGenerate, downloadsDisabled }: { appId: string; name: string; onGenerate: (id: string) => void; downloadsDisabled?: boolean }) => {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const imageUrl = `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/header.jpg`;
+  const imageUrl = `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`;
+
+  // Fail-safe: If image doesn't load in 5 seconds, show the placeholder
+  useEffect(() => {
+    if (loading) {
+      timeoutRef.current = setTimeout(() => {
+        if (loading) {
+          setError(true);
+          setLoading(false);
+        }
+      }, 5000); 
+    }
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, [loading]);
 
   return (
     <motion.div 
@@ -45,8 +59,15 @@ const GamePoster = ({ appId, name, onGenerate, downloadsDisabled }: { appId: str
             alt={name}
             loading="lazy"
             decoding="async"
-            onLoad={() => setLoading(false)}
-            onError={() => { setError(true); setLoading(false); }}
+            onLoad={() => {
+                if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                setLoading(false);
+            }}
+            onError={() => { 
+                if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                setError(true); 
+                setLoading(false); 
+            }}
             className={`w-full h-full object-cover transition-all duration-700 pointer-events-none ${loading ? 'opacity-0' : 'opacity-100 group-hover:scale-110 group-hover:rotate-1'}`}
           />
         </>

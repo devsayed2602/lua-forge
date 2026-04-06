@@ -50,6 +50,7 @@ export default function AnimatedBackground() {
   const streakTimerRef = useRef<number>(0);
   const flickerTimerRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   /** Responsive grid spacing — tighter on mobile, wider on desktop */
   const getGridSpacing = useCallback((width: number) => {
@@ -91,6 +92,28 @@ export default function AnimatedBackground() {
       rows = Math.ceil(height / spacing) + 2;
       offsetX = (width - (cols - 1) * spacing) / 2;
       offsetY = (height - (rows - 1) * spacing) / 2;
+
+      // Pre‑render static dot grid to offscreen canvas
+      if (!offscreenCanvasRef.current) {
+        offscreenCanvasRef.current = document.createElement("canvas");
+      }
+      const offscreen = offscreenCanvasRef.current;
+      offscreen.width = width * dpr;
+      offscreen.height = height * dpr;
+      const octx = offscreen.getContext("2d");
+      if (octx) {
+        octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        octx.fillStyle = "rgba(255, 255, 255, 0.07)";
+        for (let gy = 0; gy < rows; gy++) {
+          for (let gx = 0; gx < cols; gx++) {
+            const x = offsetX + gx * spacing;
+            const y = offsetY + gy * spacing;
+            octx.beginPath();
+            octx.arc(x, y, 0.7, 0, Math.PI * 2);
+            octx.fill();
+          }
+        }
+      }
     };
 
     resize();
@@ -165,47 +188,41 @@ export default function AnimatedBackground() {
       }
 
       // ── Draw dot grid ──
-      // Batch static dots for performance
-      ctx.fillStyle = "rgba(255, 255, 255, 0.07)";
-      for (let gy = 0; gy < rows; gy++) {
-        for (let gx = 0; gx < cols; gx++) {
-          const x = offsetX + gx * spacing;
-          const y = offsetY + gy * spacing;
-          const key = `${gx},${gy}`;
-          const flicker = flickerMap.get(key);
+      // Use offscreen canvas for base grid
+      if (offscreenCanvasRef.current) {
+        ctx.drawImage(offscreenCanvasRef.current, 0, 0, width, height);
+      }
 
-          if (flicker && flicker.alpha > 0.01) {
-            const { alpha, pulse } = flicker;
+      // Draw interactive flickers on top
+      for (const [key, flicker] of flickerMap.entries()) {
+        const [gx, gy] = key.split(",").map(Number);
+        const x = offsetX + gx * spacing;
+        const y = offsetY + gy * spacing;
+        const { alpha, pulse } = flicker;
 
-            // Outer glow — very subtle bloom
-            const glowR = 5 + alpha * 10;
-            const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowR);
-            gradient.addColorStop(
-              0,
-              `rgba(255, 255, 255, ${(0.15 + alpha * 0.5) * pulse})`
-            );
-            gradient.addColorStop(
-              0.5,
-              `rgba(255, 255, 255, ${alpha * 0.08 * pulse})`
-            );
-            gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-            ctx.fillStyle = gradient;
-            ctx.fillRect(x - glowR, y - glowR, glowR * 2, glowR * 2);
+        if (alpha > 0.01) {
+          // Outer glow — very subtle bloom
+          const glowR = 5 + alpha * 10;
+          const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowR);
+          gradient.addColorStop(
+            0,
+            `rgba(255, 255, 255, ${(0.15 + alpha * 0.5) * pulse})`
+          );
+          gradient.addColorStop(
+            0.5,
+            `rgba(255, 255, 255, ${alpha * 0.08 * pulse})`
+          );
+          gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(x - glowR, y - glowR, glowR * 2, glowR * 2);
 
-            // Bright core
-            const coreAlpha = 0.3 + alpha * 0.7;
-            const coreR = 0.8 + alpha * 0.8;
-            ctx.fillStyle = `rgba(255, 255, 255, ${coreAlpha})`;
-            ctx.beginPath();
-            ctx.arc(x, y, coreR, 0, Math.PI * 2);
-            ctx.fill();
-          } else {
-            // Static dot — tiny, dim
-            ctx.fillStyle = "rgba(255, 255, 255, 0.07)";
-            ctx.beginPath();
-            ctx.arc(x, y, 0.7, 0, Math.PI * 2);
-            ctx.fill();
-          }
+          // Bright core
+          const coreAlpha = 0.3 + alpha * 0.7;
+          const coreR = 0.8 + alpha * 0.8;
+          ctx.fillStyle = `rgba(255, 255, 255, ${coreAlpha})`;
+          ctx.beginPath();
+          ctx.arc(x, y, coreR, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
 
