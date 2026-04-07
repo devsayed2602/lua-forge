@@ -624,7 +624,7 @@ export default function Home() {
               animate={{ x: 0, opacity: 1 }}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
-              className="absolute top-8 right-8 z-[100] flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all duration-300 group shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
+              className="relative md:absolute md:top-8 md:right-8 z-[100] flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all duration-300 group shadow-[0_20px_50px_rgba(0,0,0,0.3)] mb-8 md:mb-0"
             >
               <div className="p-2 rounded-lg bg-indigo-500/20 group-hover:bg-indigo-500 text-indigo-400 group-hover:text-white transition-all duration-300">
                 <svg 
