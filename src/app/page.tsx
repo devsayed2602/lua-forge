@@ -584,12 +584,12 @@ export default function Home() {
             </motion.div>
 
             {/* Admin still needs the footer to access the dashboard during maintenance */}
-            <div className="absolute bottom-8">
+            <div className="absolute bottom-8 left-0 right-0 flex justify-center w-full z-50">
               <p 
-                onClick={handleFooterClick}
-                className="text-white/5 text-[10px] font-black uppercase tracking-[0.5em] cursor-default select-none hover:text-white/8 transition-colors"
+                onClick={() => setShowAdminLogin(true)}
+                className="text-white/20 hover:text-white/60 text-[10px] font-black uppercase tracking-[0.5em] cursor-pointer select-none transition-colors p-4"
               >
-                Lua Forge © 2026
+                Lua Forge Admin Login
               </p>
             </div>
           </motion.div>
