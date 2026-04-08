@@ -1,29 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { Redis } from "@upstash/redis";
 
-const CONFIG_PATH = path.join(process.cwd(), "src", "admin_config.json");
+const redis = Redis.fromEnv();
 
-function readConfig() {
+const DEFAULT_CONFIG = {
+  maintenanceMode: false,
+  maintenanceMessage: "We're performing scheduled maintenance. We'll be back shortly.",
+  bannerEnabled: false,
+  bannerMessage: "",
+  searchDisabled: false,
+  downloadsDisabled: false,
+  lastUpdatedBy: "system",
+  lastUpdatedAt: "",
+};
+
+async function readConfig() {
   try {
-    const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
-    return JSON.parse(raw);
-  } catch {
-    return {
-      maintenanceMode: false,
-      maintenanceMessage: "We're performing scheduled maintenance. We'll be back shortly.",
-      bannerEnabled: false,
-      bannerMessage: "",
-      searchDisabled: false,
-      downloadsDisabled: false,
-      lastUpdatedBy: "system",
-      lastUpdatedAt: "",
-    };
+    const config = await redis.get("site_config");
+    return config || DEFAULT_CONFIG;
+  } catch (error) {
+    console.error("Redis fetch error:", error);
+    return DEFAULT_CONFIG;
   }
 }
 
-function writeConfig(config: any) {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), "utf-8");
+async function writeConfig(config: any) {
+  await redis.set("site_config", JSON.stringify(config));
 }
 
 // GET: Fetch admin config (requires auth)
@@ -40,7 +42,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
 
-  const config = readConfig();
+  const config = await readConfig();
   return NextResponse.json(config);
 }
 
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const currentConfig = readConfig();
+    const currentConfig: any = await readConfig();
 
     const updatedConfig = {
       ...currentConfig,
@@ -69,9 +71,9 @@ export async function POST(request: NextRequest) {
       lastUpdatedAt: new Date().toISOString(),
     };
 
-    writeConfig(updatedConfig);
+    await writeConfig(updatedConfig);
     return NextResponse.json({ success: true, config: updatedConfig });
   } catch (error) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request body or Redis error" }, { status: 400 });
   }
 }

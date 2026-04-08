@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { Redis } from "@upstash/redis";
+
+const redis = Redis.fromEnv();
 
 // Global cache to avoid re-parsing the huge JSON on every request within the same container
 let cachedGameList: any[] | null = null;
@@ -10,6 +13,14 @@ const SUGGESTIONS_TTL = 600 * 1000; // 10 minutes for the final 30 items
 
 export async function GET(request: Request) {
   try {
+    const config: any = await redis.get("site_config");
+    if (config?.maintenanceMode) {
+        return NextResponse.json({ error: config.maintenanceMessage || "Site is under maintenance." }, { status: 503 });
+    }
+    if (config?.searchDisabled) {
+        return NextResponse.json({ error: "Search and suggestions are currently disabled." }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const isForcedShuffle = searchParams.get("t") || searchParams.get("shuffle");
     

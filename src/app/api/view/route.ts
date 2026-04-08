@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Redis } from "@upstash/redis";
+
+const redis = Redis.fromEnv();
 
 export async function GET(req: NextRequest) {
   try {
+    const config: any = await redis.get("site_config");
+    if (config?.maintenanceMode) {
+        return NextResponse.json({ error: config.maintenanceMessage || "Site is under maintenance." }, { status: 503 });
+    }
+    if (config?.downloadsDisabled) {
+        return NextResponse.json({ error: "Viewing content is currently disabled by the administrator." }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const appId = searchParams.get("appId");
 

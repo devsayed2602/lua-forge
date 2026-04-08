@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Redis } from "@upstash/redis";
+
+const redis = Redis.fromEnv();
 
 export async function GET() {
   try {
+    const config: any = await redis.get("site_config");
+    if (config?.maintenanceMode) {
+        return NextResponse.json({ error: config.maintenanceMessage || "Site is under maintenance." }, { status: 503 });
+    }
+    if (config?.searchDisabled) {
+        return NextResponse.json({ error: "Search and index are currently disabled." }, { status: 403 });
+    }
     const backendUrl = process.env.BACKEND_URL;
     const accessToken = process.env.SERVER_ACCESS_TOKEN;
 

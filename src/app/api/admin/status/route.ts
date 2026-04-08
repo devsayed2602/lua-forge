@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { Redis } from "@upstash/redis";
 
-const CONFIG_PATH = path.join(process.cwd(), "src", "admin_config.json");
+const redis = Redis.fromEnv();
 
 // Public endpoint - no auth required. Returns only what visitors need to know.
 export async function GET() {
   try {
-    const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
-    const config = JSON.parse(raw);
+    const config: any = await redis.get("site_config");
+
+    if (!config) throw new Error("No config found");
 
     return NextResponse.json({
       maintenanceMode: config.maintenanceMode || false,
@@ -18,7 +18,7 @@ export async function GET() {
       searchDisabled: config.searchDisabled || false,
       downloadsDisabled: config.downloadsDisabled || false,
     });
-  } catch {
+  } catch (error) {
     return NextResponse.json({
       maintenanceMode: false,
       maintenanceMessage: "",
